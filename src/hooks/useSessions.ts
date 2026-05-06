@@ -16,12 +16,30 @@ export const useSessions = (
   const [pendingSessionData, setPendingSessionData] = useState<any>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setSessionUser(user);
+        
+        let userIsAdmin = user.email?.toLowerCase() === 'yohanesoctav@gmail.com';
+        if (!userIsAdmin && user.email) {
+          try {
+            const adminDoc = await getDoc(doc(db, 'admins', user.email.toLowerCase()));
+            userIsAdmin = adminDoc.exists();
+          } catch (e) {
+            // Ignore if permission denied
+          }
+        }
+        setIsAdminUser(userIsAdmin);
+
         try {
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            lastLogin: serverTimestamp()
+          }, { merge: true });
+
           const docRef = doc(db, 'users', user.uid, 'sessions', 'latest');
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
@@ -44,6 +62,9 @@ export const useSessions = (
           setIsSessionLoaded(true);
         }
       } else {
+        setSessionUser(null);
+        setSavedSessions([]);
+        setCurrentSessionId(null);
         setIsSessionLoaded(true);
       }
     });
@@ -79,6 +100,12 @@ export const useSessions = (
       console.error("Failed to fetch sessions: ", err);
     }
   };
+
+  useEffect(() => {
+    if (sessionUser) {
+      fetchSavedSessions();
+    }
+  }, [sessionUser]);
 
   const saveSession = async (messagesData: any, stateData: any, mode: string) => {
     if (!sessionUser) return;
@@ -136,12 +163,7 @@ export const useSessions = (
           updatedAt: serverTimestamp()
         }, { merge: true });
         
-        // Also update local list so sidebar reflects changes without fetching every time
-        setSavedSessions(prev => 
-          prev.map(s => s.id === sessionId ? 
-            { ...s, currentMode: mode, updatedAt: { toMillis: () => Date.now() } } : s
-          )
-        );
+        fetchSavedSessions();
       }
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'users');
@@ -194,6 +216,7 @@ export const useSessions = (
 
   return {
     sessionUser,
+    isAdminUser,
     savedSessions,
     isSessionLoaded,
     pendingSessionData,

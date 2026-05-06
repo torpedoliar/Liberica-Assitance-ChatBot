@@ -311,7 +311,7 @@ export function AINews() {
             </div>
           ) : error ? (
              <div className="p-8 border-4 border-[var(--color-sys-ink)] bg-red-100 text-[var(--color-sys-ink)] rounded-2xl shadow-[8px_8px_0_var(--color-sys-ink)] font-mono text-center">
-              <p className="font-black text-2xl uppercase tracking-widest mb-4">Critcal Errror</p>
+              <p className="font-black text-2xl uppercase tracking-widest mb-4">Critical Error</p>
               <p className="text-base font-medium leading-relaxed">{error}</p>
              </div>
           ) : displayedNews.length === 0 ? (

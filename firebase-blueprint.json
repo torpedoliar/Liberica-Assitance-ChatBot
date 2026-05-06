@@ -31,6 +31,26 @@
         }
       },
       "required": ["currentMode", "messages", "appState", "updatedAt", "title", "isPinned"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin user allowed to invite and view dashboard",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The admin's email address"
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "The email of the admin who invited this admin"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp of creation"
+        }
+      },
+      "required": ["email", "addedBy", "createdAt"]
     }
   },
   "firestore": {
@@ -39,6 +59,13 @@
         "$ref": "#/entities/Session"
       },
       "description": "Stores user chat sessions and states"
+    },
+    "/admins/{adminEmail}": {
+      "schema": {
+        "$ref": "#/entities/Admin"
+      },
+      "description": "Stores admin users by email"
     }
   }
 }
+

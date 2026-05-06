@@ -22,6 +22,21 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'yohanesoctav@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
+      );
+    }
+
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'addedBy'])
+        && data.keys().size() == 3
+        && data.email is string && data.email.size() <= 200
+        && data.addedBy is string && data.addedBy.size() <= 200
+        && data.createdAt == request.time;
+    }
+
     function isValidSession(data) {
       return data.keys().hasAll(['currentMode', 'messages', 'appState', 'updatedAt', 'title', 'isPinned'])
         && data.keys().size() == 6
@@ -45,6 +60,16 @@ service cloud.firestore {
       return incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt']);
     }
 
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isAdmin();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /{path=**}/sessions/{sessionId} {
+      allow list, get: if isAdmin();
+    }
+
     match /users/{userId}/sessions/{sessionId} {
       allow get: if isSignedIn() && request.auth.uid == userId
                  && isValidId(userId) && isValidId(sessionId);
@@ -63,6 +88,13 @@ service cloud.firestore {
 
       allow delete: if isSignedIn() && request.auth.uid == userId
                     && isValidId(userId) && isValidId(sessionId);
+    }
+
+    match /admins/{adminEmail} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && isValidAdmin(incoming()) && incoming().email == adminEmail;
+      allow update: if false;
+      allow delete: if isAdmin() && adminEmail != 'yohanesoctav@gmail.com';
     }
   }
 }

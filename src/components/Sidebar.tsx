@@ -11,6 +11,7 @@ interface SidebarProps {
   loadSession: (sessionData: any) => void;
   togglePinSession: (session: any, e: React.MouseEvent) => void;
   handleStartNew: () => void;
+  isProcessing?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -21,7 +22,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentSessionId,
   loadSession,
   togglePinSession,
-  handleStartNew
+  handleStartNew,
+  isProcessing
 }) => {
   if (!showSidebar) return null;
 
@@ -35,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto w-full p-2 space-y-1">
+      <div className={`flex-1 overflow-y-auto w-full p-2 space-y-1 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
         {!sessionUser && (
           <div className="text-center p-4 text-xs font-mono font-bold opacity-60">
             <p>AUTH REQUIRED</p>
@@ -68,9 +70,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ))}
       </div>
-      {sessionUser && (
-         <div className="p-4 border-t border-[var(--color-sys-line)]">
-            <button onClick={handleStartNew} className="w-full py-2 border border-[var(--color-sys-line)] rounded-xl text-[var(--color-sys-ink)] hover:bg-[var(--color-sys-ink)] hover:text-[var(--color-sys-bg)] font-mono text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2">
+     {sessionUser && (
+         <div className={`p-4 border-t border-[var(--color-sys-line)] ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+            <button onClick={handleStartNew} disabled={isProcessing} className="w-full py-2 border border-[var(--color-sys-line)] rounded-xl text-[var(--color-sys-ink)] hover:bg-[var(--color-sys-ink)] hover:text-[var(--color-sys-bg)] font-mono text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2">
               <Sparkles className="w-3 h-3" /> New Session
             </button>
          </div>

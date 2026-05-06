@@ -1,10 +1,11 @@
 import React from 'react';
 import Markdown from 'react-markdown';
-import { Download, Bookmark, FileText } from 'lucide-react';
+import { Download, Bookmark, FileText, Copy, Check } from 'lucide-react';
 import { Message, Mode } from '../types';
 import { RichResponse } from './RichResponse';
 import { exportMessageToPdf } from '../utils/exportPdf';
 import { WelcomeScreen } from './WelcomeScreen';
+import { CodeBlockWithCopy } from './CodeBlockWithCopy';
 
 interface MessageListProps {
   messages: Message[];
@@ -38,7 +39,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, currentMode,
                   ) : (
                     <div className="bento-card">
                       <div className="markdown-body text-sm md:text-base leading-relaxed whitespace-pre-wrap">
-                        <Markdown>{msg.text}</Markdown>
+                        <Markdown components={{ pre: ({ children }) => <>{children}</>, code: CodeBlockWithCopy as any }}>{msg.text}</Markdown>
                       </div>
                     </div>
                   )}

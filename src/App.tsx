@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, ShieldAlert, CheckCircle2, History, Info, 
-  Wrench, Lightbulb, TrendingUp, Sparkles
+  Wrench, Lightbulb, TrendingUp, Sparkles, Shield
 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -19,11 +19,12 @@ import { MessageList } from './components/MessageList';
 import { ProcessingStatus } from './components/ProcessingStatus';
 import { ChatInput } from './components/ChatInput';
 import { AINews } from './components/AINews';
+import { AdminDashboard } from './components/AdminDashboard';
 
 export default function App() {
   const [currentMode, setCurrentMode] = useState<Mode>('news');
   const [messages, setMessages] = useState<Record<Mode, Message[]>>({
-    troubleshoot: [], brainstorm: [], market: [], chat: [], news: []
+    troubleshoot: [], brainstorm: [], market: [], chat: [], news: [], admin: []
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSafetyModal, setShowSafetyModal] = useState(true);
@@ -62,11 +63,31 @@ export default function App() {
   };
 
   const {
-    sessionUser, savedSessions, isSessionLoaded, pendingSessionData,
+    sessionUser, isAdminUser, savedSessions, isSessionLoaded, pendingSessionData,
     currentSessionId, setCurrentSessionId, showRestoreModal, setShowRestoreModal,
     setPendingSessionData, setIsSessionLoaded, handleLogin, fetchSavedSessions,
     saveSession, togglePinSession
   } = useSessions(messages, appState, currentMode, showSafetyModal);
+
+  const handleLogout = async () => {
+    try {
+      const { auth } = await import('./firebase');
+      await auth.signOut();
+      if (currentMode === 'admin') {
+        setCurrentMode('news');
+      }
+    } catch (err) {
+      console.error('Error during logout:', err);
+    }
+  };
+
+  // Keep-alive ping to prevent the container from sleeping or timing out if left idle
+  useEffect(() => {
+    const keepAlive = setInterval(() => {
+      fetch('/').catch(() => {});
+    }, 4 * 60 * 1000); // Trigger a light network request every 4 minutes 
+    return () => clearInterval(keepAlive);
+  }, []);
 
   const handleRestore = () => {
     if (pendingSessionData) {
@@ -80,7 +101,8 @@ export default function App() {
           brainstorm: parsedMsgs.brainstorm || [],
           market: parsedMsgs.market || [],
           chat: parsedMsgs.chat || [],
-          news: parsedMsgs.news || []
+          news: parsedMsgs.news || [],
+          admin: parsedMsgs.admin || []
         });
         if (parsedState.troubleshoot) setAppState({ troubleshoot: parsedState.troubleshoot });
         setCurrentMode(savedMode as Mode);
@@ -94,15 +116,23 @@ export default function App() {
   };
 
   const handleStartNew = () => {
+    if (isProcessing) {
+      console.warn("Tunggu AI selesai berpikir sebelum memulai obrolan baru.");
+      return;
+    }
     setShowRestoreModal(false);
     setPendingSessionData(null);
     setIsSessionLoaded(true);
     setCurrentSessionId(null);
-    setMessages({ troubleshoot: [], brainstorm: [], market: [], chat: [], news: [] });
+    setMessages({ troubleshoot: [], brainstorm: [], market: [], chat: [], news: [], admin: [] });
     setAppState({ troubleshoot: { step: 'idle', context: { originalProblem: '', clarifications: '', failedAttempts: [] } } });
   };
 
   const loadSession = (sessionData: any) => {
+    if (isProcessing) {
+      console.warn("Tunggu AI selesai berpikir sebelum berpindah riwayat obrolan.");
+      return;
+    }
     try {
       const parsedMsgs = JSON.parse(sessionData.messages || '{}');
       const parsedState = JSON.parse(sessionData.appState || '{}');
@@ -113,7 +143,8 @@ export default function App() {
         brainstorm: parsedMsgs.brainstorm || [],
         market: parsedMsgs.market || [],
         chat: parsedMsgs.chat || [],
-        news: parsedMsgs.news || []
+        news: parsedMsgs.news || [],
+        admin: parsedMsgs.admin || []
       });
       if (parsedState.troubleshoot) setAppState({ troubleshoot: parsedState.troubleshoot });
       setCurrentMode(savedMode as Mode);
@@ -154,9 +185,13 @@ export default function App() {
       } else {
         await handleChat(promptText, image, messages.chat, setMessages);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      const errorMsg: Message = { id: (Date.now() + 1).toString(), role: 'model', text: 'Maaf, terjadi kesalahan teknis. Silakan coba lagi.' };
+      let errorText = 'Maaf, terjadi kesalahan teknis. Silakan coba lagi.';
+      if (error?.message?.includes('429') || error?.message?.includes('quota') || error?.status === 429) {
+        errorText = 'Maaf, kuota API Gemini saat ini telah habis atau sedang sibuk. Mohon tunggu beberapa saat sebelum mencoba lagi.';
+      }
+      const errorMsg: Message = { id: Date.now().toString() + '-err', role: 'model', text: errorText };
       setMessages(prev => ({ ...prev, [currentMode]: [...prev[currentMode], errorMsg] }));
     } finally {
       setIsProcessing(false);
@@ -180,13 +215,37 @@ export default function App() {
     }
   };
 
+  if (!isSessionLoaded) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-[var(--color-sys-bg)] items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-sys-ink)]"></div>
+      </div>
+    );
+  }
+
+  if (isSessionLoaded && !sessionUser) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-[var(--color-sys-bg)] text-[var(--color-sys-ink)] items-center justify-center p-4 text-center">
+        <Shield className="w-16 h-16 mb-6" />
+        <h1 className="text-3xl font-black font-mono tracking-widest uppercase mb-4">Akses Dibatasi</h1>
+        <p className="text-gray-600 mb-8 max-w-md font-mono text-sm leading-relaxed">Silakan masuk menggunakan akun Anda untuk menggunakan Liberica Assistance.</p>
+        <button 
+          onClick={handleLogin}
+          className="px-6 py-3 bg-[var(--color-sys-ink)] text-[var(--color-sys-bg)] rounded-xl font-mono tracking-widest uppercase font-bold text-sm shadow-[4px_4px_0_var(--color-sys-bg),6px_6px_0_var(--color-sys-ink)] hover:translate-y-1 hover:shadow-none transition-all"
+        >
+          Sign In dengan Google
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--color-sys-bg)] text-[var(--color-sys-ink)]">
       <Header 
         showSidebar={showSidebar} setShowSidebar={setShowSidebar}
         currentMode={currentMode} setCurrentMode={setCurrentMode}
         setShowInfoModal={setShowInfoModal} sessionUser={sessionUser}
-        handleLogin={handleLogin}
+        handleLogin={handleLogin} handleLogout={handleLogout}
       />
 
       {currentMode === 'market' && (
@@ -213,12 +272,17 @@ export default function App() {
           sessionUser={sessionUser} savedSessions={savedSessions}
           currentSessionId={currentSessionId} loadSession={loadSession}
           togglePinSession={togglePinSession} handleStartNew={handleStartNew}
+          isProcessing={isProcessing}
         />
 
         <main className="flex-1 overflow-hidden relative flex flex-col items-center">
           {currentMode === 'news' ? (
             <div className="flex-1 w-full overflow-y-auto pb-20">
               <AINews />
+            </div>
+          ) : currentMode === 'admin' ? (
+            <div className="flex-1 w-full overflow-y-auto pb-20">
+              <AdminDashboard sessionUser={sessionUser} />
             </div>
           ) : (
             <>
@@ -254,6 +318,7 @@ export default function App() {
         <NavButton active={currentMode === 'market'} onClick={() => setCurrentMode('market')} icon={<TrendingUp className="w-4 h-4 shrink-0" />} label="Market" />
         <NavButton active={currentMode === 'chat'} onClick={() => setCurrentMode('chat')} icon={<Sparkles className="w-4 h-4 shrink-0" />} label="Prompting" />
         <NavButton active={currentMode === 'news'} onClick={() => setCurrentMode('news')} icon={<Info className="w-4 h-4 shrink-0" />} label="AI News" />
+        {isAdminUser && <NavButton active={currentMode === 'admin'} onClick={() => setCurrentMode('admin')} icon={<Shield className="w-4 h-4 shrink-0" />} label="Admin" />}
       </nav>
 
       <Modal show={!!pendingMarketChoiceMsg && currentMode === 'market'} onClose={() => {}} title="Analysis Options" type="info" icon={<TrendingUp />}>

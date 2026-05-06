@@ -1,4 +1,4 @@
-export type Mode = 'troubleshoot' | 'brainstorm' | 'market' | 'chat' | 'news';
+export type Mode = 'troubleshoot' | 'brainstorm' | 'market' | 'chat' | 'news' | 'admin';
 
 export interface Message {
   id: string;
