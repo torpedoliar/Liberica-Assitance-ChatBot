@@ -1,0 +1,9 @@
+src/components/RichResponse.tsx:bg-white
+src/components/RichResponse.tsx:border-black
+src/components/RichResponse.tsx:bg-white
+src/components/RichResponse.tsx:bg-white
+src/components/RichResponse.tsx:bg-white
+src/App.tsx:text-white
+src/App.tsx:border-black
+src/App.tsx:text-white
+src/App.tsx:border-black

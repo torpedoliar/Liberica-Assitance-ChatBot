@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['currentMode', 'messages', 'appState', 'updatedAt', 'title', 'isPinned'])
+        && data.keys().size() == 6
+        && data.currentMode is string && data.currentMode.size() <= 100
+        && data.messages is string && data.messages.size() <= 1048576
+        && data.appState is string && data.appState.size() <= 1048576
+        && data.updatedAt == request.time
+        && data.title is string && data.title.size() <= 100
+        && data.isPinned is bool;
+    }
+
+    function isSaveSession() {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['currentMode', 'messages', 'appState', 'updatedAt']);
+    }
+    
+    function isPinSession() {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['isPinned', 'updatedAt']);
+    }
+
+    function isRenameSession() {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt']);
+    }
+
+    match /users/{userId}/sessions/{sessionId} {
+      allow get: if isSignedIn() && request.auth.uid == userId
+                 && isValidId(userId) && isValidId(sessionId);
+      
+      allow list: if isSignedIn() && request.auth.uid == userId
+                  && isValidId(userId);
+
+      allow create: if isSignedIn() && request.auth.uid == userId
+                    && isValidId(userId) && isValidId(sessionId)
+                    && isValidSession(incoming());
+
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    && isValidId(userId) && isValidId(sessionId)
+                    && isValidSession(incoming())
+                    && (isSaveSession() || isPinSession() || isRenameSession());
+
+      allow delete: if isSignedIn() && request.auth.uid == userId
+                    && isValidId(userId) && isValidId(sessionId);
+    }
+  }
+}
