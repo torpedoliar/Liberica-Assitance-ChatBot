@@ -1320,6 +1320,111 @@ export function RichResponse({ data, mode, onHintClick }: { data: any; mode: Mod
     );
   }
 
+  if (mode === "chat") {
+    const content = typeof data === "string" ? data : data?.text || "";
+    const handleCopy = () => {
+      navigator.clipboard.writeText(content);
+      setActiveAlerts((prev) => ({ ...prev, copied: true }));
+      setTimeout(() => {
+        setActiveAlerts((prev) => ({ ...prev, copied: false }));
+      }, 2000);
+    };
+
+    return (
+      <div className="bento-grid">
+        <div className="md:col-span-12 bento-card bg-[#1a1a1a] border border-[#333] rounded-xl p-0 relative overflow-hidden flex flex-col group">
+          <div className="bg-[#2a2a2a] border-b border-[#444] p-3 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-400">
+                Enhanced Prompt
+              </span>
+            </div>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-3 py-1.5 bg-[#444] hover:bg-[#555] active:bg-[#666] border border-[#555] rounded text-xs font-mono text-white transition-colors cursor-pointer"
+            >
+              {activeAlerts["copied"] ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3" /> Copy Full Output
+                </>
+              )}
+            </button>
+          </div>
+          <div className="p-5 md:p-6 overflow-x-auto text-[var(--color-sys-bg)]">
+            <div className="markdown-body prose-sm prose-invert max-w-none">
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ node, ...props }) => (
+                    <p
+                      className="mb-4 text-sm md:text-base leading-relaxed text-slate-300"
+                      {...props}
+                    />
+                  ),
+                  strong: ({ node, ...props }) => (
+                    <strong className="font-bold text-white" {...props} />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <ul
+                      className="list-disc list-inside mb-4 space-y-2 text-slate-300"
+                      {...props}
+                    />
+                  ),
+                  ol: ({ node, ...props }) => (
+                    <ol
+                      className="list-decimal list-inside mb-4 space-y-2 text-slate-300"
+                      {...props}
+                    />
+                  ),
+                  code: ({
+                    node,
+                    inline,
+                    className,
+                    children,
+                    ...props
+                  }: any) => {
+                    const match = /language-(\w+)/.exec(className || "");
+                    return !inline ? (
+                      <div className="rounded-xl overflow-hidden my-4 border border-[#444] bg-[#0a0a0a]">
+                        <div className="bg-[#1a1a1a] px-4 py-2 border-b border-[#333] flex justify-between items-center">
+                          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+                            {match ? match[1] : "text"}
+                          </span>
+                        </div>
+                        <pre className="p-4 overflow-x-auto whitespace-pre-wrap break-words">
+                          <code
+                            className="font-mono text-sm text-emerald-300"
+                            {...props}
+                          >
+                            {children}
+                          </code>
+                        </pre>
+                      </div>
+                    ) : (
+                      <code
+                        className="bg-[#2a2a2a] px-1 py-0.5 rounded font-mono text-xs text-emerald-300"
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {content}
+              </Markdown>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bento-card">
       <p className="leading-relaxed font-mono text-sm ">
