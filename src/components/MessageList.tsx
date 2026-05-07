@@ -1,5 +1,6 @@
 import React from 'react';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Download, Bookmark, FileText, Copy, Check } from 'lucide-react';
 import { Message, Mode } from '../types';
 import { RichResponse } from './RichResponse';
@@ -11,9 +12,10 @@ interface MessageListProps {
   messages: Message[];
   currentMode: Mode;
   renameSession: () => void;
+  onHintClick?: (text: string) => void;
 }
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, currentMode, renameSession }) => {
+export const MessageList: React.FC<MessageListProps> = ({ messages, currentMode, renameSession, onHintClick }) => {
   if (messages.length === 0) {
     return <WelcomeScreen mode={currentMode} />;
   }
@@ -30,16 +32,16 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, currentMode,
                 <span className="text-sm font-semibold opacity-90 line-clamp-1">{msg.fileName}</span>
               </div>
             )}
-            {msg.role === 'user' && <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>}
+            {msg.role === 'user' && <p className="text-sm md:text-base leading-relaxed ">{msg.text}</p>}
             {msg.role === 'model' && (
               <div className="space-y-4">
                 <div id={`msg-content-${msg.id}`}>
                   {msg.data ? (
-                    <RichResponse data={msg.data} mode={currentMode} />
+                    <RichResponse data={msg.data} mode={currentMode} onHintClick={onHintClick} />
                   ) : (
                     <div className="bento-card">
-                      <div className="markdown-body text-sm md:text-base leading-relaxed whitespace-pre-wrap">
-                        <Markdown components={{ pre: ({ children }) => <>{children}</>, code: CodeBlockWithCopy as any }}>{msg.text}</Markdown>
+                      <div className="markdown-body text-sm md:text-base leading-relaxed ">
+                        <Markdown remarkPlugins={[remarkGfm]} components={{ pre: ({ children }) => <>{children}</>, code: CodeBlockWithCopy as any }}>{msg.text}</Markdown>
                       </div>
                     </div>
                   )}

@@ -1,5 +1,6 @@
 import React from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Mode } from "../types";
 import {
   ShieldAlert,
@@ -29,7 +30,7 @@ import {
   CompanyProfile,
 } from "react-ts-tradingview-widgets";
 
-export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
+export function RichResponse({ data, mode, onHintClick }: { data: any; mode: Mode; onHintClick?: (text: string) => void }) {
   const [activeAlerts, setActiveAlerts] = useState<Record<string, boolean>>({});
 
   const handleSetAlert = (alertKey: string) => {
@@ -85,7 +86,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
               </div>
             )}
             <div className="max-w-none">
-              <Markdown
+              <Markdown remarkPlugins={[remarkGfm]}
                 components={{
                   h1: ({ node, ...props }) => (
                     <h1
@@ -313,6 +314,35 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
             </ul>
           </div>
         )}
+
+        {data.inline_command_question && (
+          <div className="md:col-span-12 mt-4 p-5 border-l-4 border-amber-500 bg-amber-50/50 rounded-r-xl shadow-sm">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-600 mb-2 flex items-center gap-2">
+               Tindakan Selanjutnya / Penutup
+            </h4>
+            <div className="text-[var(--color-sys-ink)] font-semibold text-lg leading-relaxed font-serif italic">
+              {data.inline_command_question}
+            </div>
+          </div>
+        )}
+
+        {data.hints_for_user && data.hints_for_user.length > 0 && (
+          <div className="md:col-span-12 mt-2 flex flex-col gap-2">
+            <p className="text-xs font-mono font-bold text-amber-500 uppercase tracking-widest px-1 mb-1">💡 Keterangan Petunjuk (Hints):</p>
+            <p className="text-[11px] text-slate-500 px-1 mb-3">Pilih salah satu jawaban di bawah ini (klik untuk kirim), atau ketik jawaban Anda sendiri di kolom chat.</p>
+            <div className="flex flex-wrap gap-2">
+              {data.hints_for_user.map((hint: string, index: number) => (
+                <div 
+                  key={index} 
+                  onClick={() => onHintClick && onHintClick(hint)}
+                  className="px-3 py-2 bg-slate-100 hover:bg-[var(--color-sys-ink)] hover:text-[var(--color-sys-bg)] border border-slate-200 hover:border-transparent rounded-lg text-sm font-sans text-slate-700 cursor-pointer transition-colors shadow-sm active:scale-95"
+                >
+                  "{hint}"
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -322,11 +352,11 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
       const fallbackText = data.text || data.message || data.response || data.textResponse || (typeof data === 'object' ? JSON.stringify(data, null, 2) : "Saya butuh informasi lebih lanjut untuk menyusun strategi yang tepat.");
       return (
         <div className="bento-card">
-          <div className="markdown-body text-sm md:text-base leading-relaxed whitespace-pre-wrap text-[var(--color-sys-ink)]">
+          <div className="markdown-body text-sm md:text-base leading-relaxed  text-[var(--color-sys-ink)]">
             {typeof fallbackText === 'string' && fallbackText.startsWith('{') ? (
                <pre className="text-xs bg-slate-100 p-2 rounded">{fallbackText}</pre>
             ) : (
-               <Markdown>{fallbackText}</Markdown>
+               <Markdown remarkPlugins={[remarkGfm]} components={{ table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="w-full text-sm text-left" {...props} /></div>, th: ({node, ...props}) => <th className="bg-slate-100 p-2 border" {...props} />, td: ({node, ...props}) => <td className="p-2 border" {...props} /> }}>{fallbackText}</Markdown>
             )}
           </div>
         </div>
@@ -337,14 +367,57 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
       <div className="space-y-6">
         {data.textResponse && (
           <div className="bento-card">
-            <div className="markdown-body text-sm md:text-base leading-relaxed whitespace-pre-wrap">
-              <Markdown>{data.textResponse}</Markdown>
+            <div className="markdown-body text-sm md:text-base leading-relaxed ">
+              <Markdown remarkPlugins={[remarkGfm]} components={{ table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="w-full text-sm text-left" {...props} /></div>, th: ({node, ...props}) => <th className="bg-slate-100 p-2 border" {...props} />, td: ({node, ...props}) => <td className="p-2 border" {...props} /> }}>{data.textResponse}</Markdown>
             </div>
           </div>
         )}
         
+        {data.pivot_matrix && data.pivot_matrix.length > 0 && (
+          <div className="bento-card overflow-x-auto">
+            <h4 className="text-xl font-serif italic mb-4 text-[var(--color-sys-ink)]">
+              Fase 3: The Pivot Matrix
+            </h4>
+            <table className="w-full text-sm text-left border-collapse border border-[var(--color-sys-line)]">
+              <thead className="bg-slate-100 uppercase text-xs font-mono tracking-widest text-[var(--color-sys-ink)]">
+                <tr>
+                  <th className="p-3 border border-[var(--color-sys-line)]">Paradigma Alternatif</th>
+                  <th className="p-3 border border-[var(--color-sys-line)]">Titik Buta Dipecahkan</th>
+                  <th className="p-3 border border-[var(--color-sys-line)]">Trade-off</th>
+                  <th className="p-3 border border-[var(--color-sys-line)] w-32">Kompleksitas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.pivot_matrix.map((row: any, i: number) => (
+                  <tr key={i} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-3 border border-[var(--color-sys-line)] font-bold text-[var(--color-sys-ink)]">{row.paradigma}</td>
+                    <td className="p-3 border border-[var(--color-sys-line)]">{row.blind_spot}</td>
+                    <td className="p-3 border border-[var(--color-sys-line)]">{row.tradeoff}</td>
+                    <td className="p-3 border border-[var(--color-sys-line)]">
+                      <span className={`px-2 py-1 rounded-sm text-[10px] font-mono tracking-wider uppercase font-bold ${
+                        String(row.complexity).toLowerCase().includes('tinggi') 
+                          ? 'bg-rose-100 text-rose-700' 
+                          : String(row.complexity).toLowerCase().includes('rendah') 
+                          ? 'bg-emerald-100 text-emerald-700' 
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {row.complexity}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {data.ideas && data.ideas.length > 0 && (
           <div className="bento-grid space-y-4">
+            <div className="md:col-span-12">
+              <h4 className="text-xl font-serif italic mb-2 mt-4 text-[var(--color-sys-ink)]">
+                Fase Akhir: Architect's Verdict & Opsi Eksekusi
+              </h4>
+            </div>
             {data.ideas.map((idea: any, i: number) => (
               <div
                 key={i}
@@ -458,10 +531,15 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
 
         {data.hints_for_user && data.hints_for_user.length > 0 && (
           <div className="mt-4 flex flex-col gap-2">
-            <p className="text-xs font-mono font-medium text-slate-500 uppercase tracking-widest px-1">💡 Coba balas dengan menjawab ini:</p>
+            <p className="text-xs font-mono font-bold text-amber-500 uppercase tracking-widest px-1 mb-1">💡 Keterangan Petunjuk (Hints):</p>
+            <p className="text-[11px] text-slate-500 px-1 mb-3">Pilih salah satu jawaban di bawah ini (klik untuk kirim), atau ketik jawaban Anda sendiri di kolom chat.</p>
             <div className="flex flex-wrap gap-2">
               {data.hints_for_user.map((hint: string, index: number) => (
-                <div key={index} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-sm font-sans text-slate-700 cursor-help transition-colors select-all">
+                <div 
+                  key={index} 
+                  onClick={() => onHintClick && onHintClick(hint)}
+                  className="px-3 py-2 bg-slate-100 hover:bg-[var(--color-sys-ink)] hover:text-[var(--color-sys-bg)] border border-slate-200 hover:border-transparent rounded-lg text-sm font-sans text-slate-700 cursor-pointer transition-colors shadow-sm active:scale-95"
+                >
                   "{hint}"
                 </div>
               ))}
@@ -535,7 +613,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
                   Potential Rewards
                 </h5>
                 <div className="text-sm font-sans leading-relaxed opacity-90 markdown-body prose-sm prose-emerald max-w-none">
-                  <Markdown>{item.why_it_is_good}</Markdown>
+                  <Markdown remarkPlugins={[remarkGfm]}>{item.why_it_is_good}</Markdown>
                 </div>
               </div>
               <div className="md:col-span-6 bento-card border border-rose-200 bg-rose-50/30 text-rose-950 rounded-xl p-5 hover:shadow-md transition-shadow">
@@ -543,7 +621,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
                   <AlertCircle className="w-4 h-4 text-rose-600" /> Cons & Risks
                 </h5>
                 <div className="text-sm font-sans leading-relaxed opacity-90 markdown-body prose-sm prose-rose max-w-none">
-                  <Markdown>{item.why_to_avoid}</Markdown>
+                  <Markdown remarkPlugins={[remarkGfm]}>{item.why_to_avoid}</Markdown>
                 </div>
               </div>
 
@@ -653,7 +731,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
               <h3 className="text-2xl md:text-3xl font-bold tracking-tight font-serif italic uppercase break-words">
                 {data.asset_name}
               </h3>
-              <span className="px-3 py-1 border border-[var(--color-sys-bg)] font-mono text-sm whitespace-pre-wrap">
+              <span className="px-3 py-1 border border-[var(--color-sys-bg)] font-mono text-sm ">
                 {data.current_price}
               </span>
             </div>
@@ -835,7 +913,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
                     <BarChart2 className="w-3 h-3" /> Sentiment Score Breakdown
                   </h4>
                   <div className="text-xs font-sans leading-relaxed opacity-90 markdown-body prose-sm prose-invert max-w-none">
-                    <Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]}>
                       {data.sentiment.sentiment_calculation_breakdown}
                     </Markdown>
                   </div>
@@ -1179,7 +1257,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
                         <span className="text-[9px] font-mono font-bold uppercase tracking-widest mb-2 block opacity-50 text-amber-600">
                           {alert.trigger_type?.replace("_", " ")}
                         </span>
-                        <h5 className="font-bold text-amber-900 mb-2 font-mono whitespace-pre-wrap">
+                        <h5 className="font-bold text-amber-900 mb-2 font-mono ">
                           {alert.condition || alert.value}
                         </h5>
                         <p className="text-xs font-sans leading-relaxed opacity-80">
@@ -1244,7 +1322,7 @@ export function RichResponse({ data, mode }: { data: any; mode: Mode }) {
 
   return (
     <div className="bento-card">
-      <p className="leading-relaxed font-mono text-sm whitespace-pre-wrap">
+      <p className="leading-relaxed font-mono text-sm ">
         {data?.text || ""}
       </p>
     </div>

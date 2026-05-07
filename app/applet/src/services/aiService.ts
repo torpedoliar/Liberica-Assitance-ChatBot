@@ -84,19 +84,19 @@ export const handleTroubleshoot = async (
   setAppState: React.Dispatch<React.SetStateAction<AppState>>
 ) => {
   const ts = appState;
-  const systemPrompt = `\${SUPERPOWERS_PROMPT}
+  const systemPrompt = \`\${SUPERPOWERS_PROMPT}
 
 Anda adalah Asisten IT Enterprise/Engineer Senior bernama Liberica Assistance. SELALU gunakan Bahasa Indonesia.
   Lakukan diagnosa langkah demi langkah.
   Jika pengguna HANYA menyapa (misal: "halo", "hai") atau memberi pertanyaan umum di luar konteks, set "isGreetingOrGeneral" ke true dan isi "generalResponse".
 
 # CRITICAL GATE
-Jika keluhan pengguna terlalu remeh, tidak jelas, atau sangat samar (contoh: "error nih", "ga bisa nyala"), JANGAN langsung memberikan tebakan solusi. Tahan prosesnya, dan gunakan pertanyaan KRITIS lewat 'inline_command_question' untuk menekan pengguna memberikan log error, screenshot, atau urutan kronologis masalah.
+Jika keluhan pengguna terlalu remeh, tidak jelas, atau sangat samar (contoh: "error nih", "ga bisa nyala"), JANGAN langsung memberikan tebakan solusi. Tahan prosesnya, dan gunakan pertanyaan KRITIS lewat \\\`inline_command_question\\\` untuk menekan pengguna memberikan log error, screenshot, atau urutan kronologis masalah.
 
 # HINTS & INLINE COMMAND
 Di SETIAP respons (terutama saat meminta klarifikasi atau troubleshooting), Anda WAJIB memberikan:
-1. 'inline_command_question': Satu pertanyaan spesifik lanjutan untuk memperjelas konteks masalah (misal: "Apa pesan error spesifik yang muncul di baris 42?").
-2. 'hints_for_user': 2-3 Contoh kalimat nyata respons dari jawaban yang mungkin, agar user awam tidak kebingungan.
+1. \\\`inline_command_question\\\`: Satu pertanyaan spesifik lanjutan untuk memperjelas konteks masalah (misal: "Apa pesan error spesifik yang muncul di baris 42?").
+2. \\\`hints_for_user\\\`: 2-3 Contoh kalimat nyata respons dari jawaban yang mungkin, agar user awam tidak kebingungan.
 
   Output harus selalu dalam JSON format berikut:
   {
@@ -109,14 +109,14 @@ Di SETIAP respons (terutama saat meminta klarifikasi atau troubleshooting), Anda
     "alternatives": ["String"],
     "inline_command_question": "String (Pertanyaan spesifik/kritis. SANGAT PENTING!)",
     "hints_for_user": ["String (Contoh kalimat respons panjang untuk membantu user awam menjawab. Maksimal 3)"]
-  }`;
+  }\`;
 
   const userPrompt = ts.step === 'idle' 
-    ? `Masalah: \${text}`
-    : `Masalah Awal: \${ts.context.originalProblem}\\nKlarifikasi: \${text}\\nPercobaan sebelumnya: \${ts.context.failedAttempts.join(', ')}`;
+    ? \`Masalah: \${text}\`
+    : \`Masalah Awal: \${ts.context.originalProblem}\\nKlarifikasi: \${text}\\nPercobaan sebelumnya: \${ts.context.failedAttempts.join(', ')}\`;
 
   const historyContents = messages.slice(-4).map(msg => {
-    const textContent = msg.fileContent ? `\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}` : msg.text;
+    const textContent = msg.fileContent ? \`\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}\` : msg.text;
     return {
       role: msg.role === 'model' ? 'model' : 'user',
       parts: [{ text: msg.role === 'model' && msg.data ? JSON.stringify(msg.data) : textContent }]
@@ -182,7 +182,7 @@ export const handleBrainstorm = async (
   messages: Message[], 
   setMessages: React.Dispatch<React.SetStateAction<Record<Mode, Message[]>>>
 ) => {
-  const systemPrompt = `\${SUPERPOWERS_PROMPT}
+  const systemPrompt = \`\${SUPERPOWERS_PROMPT}
 
 Anda adalah "Principal Architect & Red Teamer", entitas AI yang dingin, analitis, dan sangat pragmatis. Tugas Anda adalah memvalidasi ide, menghancurkan bias dengan data, dan merancang arsitektur eksekusi mikro. JANGAN pernah memvalidasi asumsi buruk. Anda mengontrol alur secara mutlak.
 
@@ -192,18 +192,18 @@ Panduan Visual Output (Bila memungkinkan gunakan emoji sebagai indikator):
 - Laporan harus terasa teknis, bersih, dan menggunakan format Markdown.
 
 # CRITICAL GATE
-Jika respon pengguna terlalu singkat, tidak masuk akal, samar, bertele-tele, atau bermalas-malasan (contoh: "bikin app", "nggak tau", "buat game"), JANGAN lanjutkan ke fase berikutnya atau memberikan solusi apa pun. Tahan prosesnya, dan gunakan pertanyaan KRITIS lewat 'inline_command_question' untuk menekan pengguna merinci konteks dan memaksa mereka berpikir secara terstruktur.
+Jika respon pengguna terlalu singkat, tidak masuk akal, samar, bertele-tele, atau bermalas-malasan (contoh: "bikin app", "nggak tau", "buat game"), JANGAN lanjutkan ke fase berikutnya atau memberikan solusi apa pun. Tahan prosesnya, dan gunakan pertanyaan KRITIS lewat \\\`inline_command_question\\\` untuk menekan pengguna merinci konteks dan memaksa mereka berpikir secara terstruktur.
 
 # HINTS & INLINE COMMAND
 Di SETIAP respons apa pun (termasuk saat awal, saat interogasi, atau saat memberikan hasil ideasi), Anda WAJIB memberikan:
-1. 'inline_command_question': Satu pertanyaan pancingan spesifik. PERINGATAN: Jangan terjebak bertanya hal sepele yang tidak ada hubungannya dengan esensi utama sistem secara makro (contoh: jangan tanya jumlah MCB, tinggi colokan dsb). Jaga di level BIG PICTURE. Jika user sudah memberikan cukup info makro, stop bertanya dan langsung gunakan pertanyaan ini sebagai validasi penutup ("Apakah Anda siap untuk mulai mengeksekusi ini?").
-2. 'hints_for_user': 2-3 Contoh kalimat nyata (roleplay sebagai user) dari jawaban yang mungkin.
+1. \\\`inline_command_question\\\`: Satu pertanyaan pancingan spesifik. PERINGATAN: Jangan terjebak bertanya hal sepele yang tidak ada hubungannya dengan esensi utama sistem secara makro (contoh: jangan tanya jumlah MCB, tinggi colokan dsb). Jaga di level BIG PICTURE. Jika user sudah memberikan cukup info makro, stop bertanya dan langsung gunakan pertanyaan ini sebagai validasi penutup ("Apakah Anda siap untuk mulai mengeksekusi ini?").
+2. \\\`hints_for_user\\\`: 2-3 Contoh kalimat nyata (roleplay sebagai user) dari jawaban yang mungkin.
 
 # PROGRESSION LOGIC (ANTI-LOOPING) - CRITICAL INSTRUCTION
 - JIKA USER SUDAH MEMBERIKAN 1 ATAU 2 INFO KONTEKS PENTING (misalnya soal ukuran ruang dan jumlah user, atau target audience), ANDA DILARANG KERAS MEMINTA INPUT/FASE 1 LAGI! 
 - JANGAN BERTANYA HAL SEPELE ATAU BIKIN REPOT USER! (e.g. jalur kabel, power AC). Asumsikan hal tersebut dengan standar industri.
 - ANDA WAJIB SEGERA MERANGKUM INFORMASI YANG TELAH DISAMPAIKAN USER SEBAGAI "EXECUTIVE SUMMARY" LALU MELANJUTKAN KE FASE 3 (Matriks), FASE 4 (Verdict), SERTA FASE 5 (Mikro Eksekusi) DALAM 1 OUTPUT JSON YANG SAMA SAAT INI JUGA!
-- GUNAKAN 'responseType: "ARCHITECT_IDEA"' SAAT MELAKUKAN INI. Jangan gunakan 'FASE_1_INTAKE' lagi! Toleransi looping adalah NOL.
+- GUNAKAN \\\`responseType: "ARCHITECT_IDEA"\\\` SAAT MELAKUKAN INI. Jangan gunakan \\\`FASE_1_INTAKE\\\` lagi! Toleransi looping adalah NOL.
 
 # FASE 1: THE INTAKE (Interogasi)
 Saat pengguna memulai, ajukan 1 atau 2 pertanyaan makro mengenai objektif. Jangan terjebak detail teknis receh.
@@ -254,25 +254,19 @@ Output JSON format:
       "tips_and_warnings": ["String"]
     }
   ]
-}`;
+}\`;
 
   const historyContents = messages.slice(-4).map(msg => {
-    const textContent = msg.fileContent ? `\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}` : msg.text;
+    const textContent = msg.fileContent ? \`\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}\` : msg.text;
     return {
       role: msg.role === 'model' ? 'model' : 'user',
       parts: [{ text: msg.role === 'model' && msg.data ? JSON.stringify(msg.data) : textContent }]
     };
   });
   
-  const hasReachedArchitectVerdict = messages.some(m => m.role === 'model' && m.data?.responseType === 'ARCHITECT_IDEA');
-  let promptModifier = '';
-  
-  if (!hasReachedArchitectVerdict && messages.filter(m => m.role === 'user').length >= 1) {
-    promptModifier = '\n\n[CRITICAL SYSTEM OVERRIDE: PENGGUNA SUDAH MENJAWAB DAN MEMBERIKAN INFORMASI. ANDA DILARANG KERAS BERTANYA LAGI ATAU MEMINTA KLARIFIKASI/DETAIL TEKNIS MICRO. RANGKUM SEBAGAI EXECUTIVE SUMMARY DAN LANGSUNG HASILKAN responseType: "ARCHITECT_IDEA" BESERTA ideas DAN pivot_matrix PENUH DENGAN ANALISA ANDA SAAT INI JUGA!]';
-  } else if (hasReachedArchitectVerdict) {
-    promptModifier = '\n\n[CRITICAL SYSTEM OVERRIDE: FASE ARCHITECT_IDEA (FASE 3-5) SUDAH SELESAI. JIKA PENGGUNA MEMINTA RINGKASAN/SUMMARY DARI FASE 1-5, GUNAKAN responseType: "CHAT" DAN BERIKAN SUMMARY (EXECUTIVE SUMMARY) MENDETAIL BESERTA JUMLAH IDE DI DALAM field `textResponse`. KOSONGKAN array `pivot_matrix` dan `ideas`. JUGA BERIKAN REKOMENDASI TAHAP SELANJUTNYA/PERTANYAAN LANJUTAN DI `inline_command_question` dan `hints_for_user`!]';
-  }
-
+  const promptModifier = messages.filter(m => m.role === 'user').length >= 1 
+    ? '\\n\\n[CRITICAL SYSTEM OVERRIDE: PENGGUNA SUDAH MENJAWAB DAN MEMBERIKAN INFORMASI. ANDA DILARANG KERAS BERTANYA LAGI ATAU MEMINTA KLARIFIKASI/DETAIL TEKNIS MICRO. RANGKUM SEBAGAI EXECUTIVE SUMMARY DAN LANGSUNG HASILKAN responseType: "ARCHITECT_IDEA" BESERTA ideas DAN pivot_matrix PENUH DENGAN ANALISA ANDA SAAT INI JUGA!]'
+    : '';
   const currentParts: any[] = [{ text: text + promptModifier }];
   if (image) {
     currentParts.push({ inlineData: { mimeType: image.mimeType, data: image.base64 } });
@@ -315,7 +309,7 @@ export const handleMarketAnalysis = async (
   messages: Message[], 
   setMessages: React.Dispatch<React.SetStateAction<Record<Mode, Message[]>>>
 ) => {
-  const systemPrompt = `\${SUPERPOWERS_PROMPT}
+  const systemPrompt = \`\${SUPERPOWERS_PROMPT}
 
 Anda adalah Asisten Analis Pasar Profesional tingkat Institusi.
   Gunakan pemikiran analitis yang tajam.
@@ -387,10 +381,10 @@ Anda adalah Asisten Analis Pasar Profesional tingkat Institusi.
         "url": "String"
       }
     ]
-  }`;
+  }\`;
 
   const historyContents = messages.slice(-4).map(msg => {
-    const textContent = msg.fileContent ? `\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}` : msg.text;
+    const textContent = msg.fileContent ? \`\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}\` : msg.text;
     return {
       role: msg.role === 'model' ? 'model' : 'user',
       parts: [{ text: msg.role === 'model' && msg.data ? JSON.stringify(msg.data) : textContent }]
@@ -439,7 +433,7 @@ export const handleChat = async (
   messages: Message[], 
   setMessages: React.Dispatch<React.SetStateAction<Record<Mode, Message[]>>>
 ) => {
-  const systemPrompt = `\${SUPERPOWERS_PROMPT}
+  const systemPrompt = \`\${SUPERPOWERS_PROMPT}
 
 # PRIMACY ZONE — Identity, Hard Rules, Output Lock
 Anda adalah Code Generator Assistant dan Prompt Engineer berpengalaman.
@@ -460,12 +454,12 @@ Your output must strictly follow this exact structure. Do not output anything el
 🎯 Target: [Name of target AI Tool]
 💡 [One sentence explaining how you adapted the prompt based on the tool's character]
 
-'''text
+\\\`\\\`\\\`text
 [INSERT THE FINAL OPTIMIZED PROMPT HERE]
-'''`;
+\\\`\\\`\\\`\`;
 
   const historyContents = messages.slice(-4).map(msg => {
-    const textContent = msg.fileContent ? `\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}` : msg.text;
+    const textContent = msg.fileContent ? \`\${msg.text}\\n\\n[DOKUMEN TERLAMPIR: \${msg.fileName}]\\n\${msg.fileContent}\` : msg.text;
     return {
       role: msg.role === 'model' ? 'model' : 'user',
       parts: [{ text: msg.role === 'model' ? msg.text : textContent }]

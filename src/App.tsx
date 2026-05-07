@@ -159,7 +159,9 @@ export default function App() {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, currentMode, isProcessing]);
 
-  const handleSendMessage = async (typedText: string, image: any, file: any) => {
+  const handleSendMessage = async (typedText: string, image?: any, file?: any) => {
+    if (isProcessing) return;
+    
     let promptText = typedText;
     if (file) promptText += `\n\n[DOKUMEN TERLAMPIR: ${file.name}]\n${file.content.substring(0, 50000)}`;
     
@@ -291,6 +293,7 @@ export default function App() {
                   messages={messages[currentMode]} 
                   currentMode={currentMode} 
                   renameSession={renameSession} 
+                  onHintClick={(text) => handleSendMessage(text)}
                 />
                 {isProcessing && <ProcessingStatus />}
               </div>
