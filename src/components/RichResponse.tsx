@@ -19,6 +19,10 @@ import {
   BellRing,
   ExternalLink,
   LineChart,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Copy,
+  ChevronDown
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -30,7 +34,146 @@ import {
   CompanyProfile,
 } from "react-ts-tradingview-widgets";
 
-export function RichResponse({ data, mode, onHintClick }: { data: any; mode: Mode; onHintClick?: (text: string) => void }) {
+export interface ComparisonBreakdownItem {
+  asset_name: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral' | 'mixed' | string;
+  current_price_or_status?: string;
+  why_it_is_good?: string;
+  why_to_avoid?: string;
+  local_market_analysis?: string;
+  global_market_analysis?: string;
+  technical_analysis?: string;
+}
+
+export interface RichResponseProps {
+  data: any;
+  mode: Mode;
+  onHintClick?: (text: string) => void;
+  has_multiple_options?: boolean;
+  comparison_breakdown?: ComparisonBreakdownItem[];
+}
+
+function ComparisonCard({ item }: { item: ComparisonBreakdownItem }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleId = `toggle-${item.asset_name.replace(/\s+/g, '-')}`;
+
+  const hasGood = !!item.why_it_is_good;
+  const hasBad = !!item.why_to_avoid;
+  const hasBody = hasGood || hasBad;
+  
+  const hasLocal = !!item.local_market_analysis;
+  const hasGlobal = !!item.global_market_analysis;
+  const hasTech = !!item.technical_analysis;
+  const hasAnalysis = hasLocal || hasGlobal || hasTech;
+
+  const sentimentLower = item.sentiment?.toLowerCase() || 'neutral';
+  
+  let sentimentBadgeClasses = "bg-slate-100 text-slate-800 border-slate-300";
+  let sentimentLabel = "NETRAL";
+  if (sentimentLower === 'bullish') {
+    sentimentBadgeClasses = "bg-emerald-100 text-emerald-800 border-emerald-300";
+    sentimentLabel = "BULLISH";
+  } else if (sentimentLower === 'bearish') {
+    sentimentBadgeClasses = "bg-rose-100 text-rose-800 border-rose-300";
+    sentimentLabel = "BEARISH";
+  } else if (sentimentLower === 'mixed') {
+    sentimentBadgeClasses = "bg-amber-100 text-amber-800 border-amber-300";
+    sentimentLabel = "CAMPURAN";
+  }
+
+  return (
+    <article className="bento-grid mb-6 border-2 border-[var(--color-sys-ink)] bg-white p-6 rounded-xl shadow-[4px_4px_0_var(--color-sys-ink)]" aria-label={item.asset_name}>
+      {/* Header Row */}
+      <div className="md:col-span-12 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-dashed border-[var(--color-sys-line)] pb-4 mb-4 gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h3 className="text-lg md:text-xl font-bold font-serif italic uppercase">{item.asset_name}</h3>
+          <span className={`px-4 py-1.5 border text-[10px] md:text-xs font-mono font-bold uppercase tracking-widest rounded-full flex items-center justify-center ${sentimentBadgeClasses}`}>
+            {sentimentLabel}
+          </span>
+        </div>
+        {item.current_price_or_status && (
+           <span className="px-3 py-1.5 bg-slate-100 border border-slate-300 text-slate-800 text-xs font-mono rounded-full font-bold ml-auto md:ml-0">
+            {item.current_price_or_status}
+          </span>
+        )}
+      </div>
+
+      {/* Body 2-col */}
+      {hasBody && (
+        <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {hasGood && (
+            <div className={`bento-card border border-emerald-200 bg-emerald-50/30 text-emerald-950 rounded-xl p-5 ${!hasBad ? 'md:col-span-2' : ''}`}>
+              <h5 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-4 opacity-60">KELEBIHAN</h5>
+              <div className="text-sm font-sans leading-relaxed opacity-90 prose-sm prose-emerald max-w-none markdown-body">
+                <Markdown remarkPlugins={[remarkGfm]}>{item.why_it_is_good}</Markdown>
+              </div>
+            </div>
+          )}
+          {hasBad && (
+            <div className={`bento-card border border-rose-200 bg-rose-50/30 text-rose-950 rounded-xl p-5 ${!hasGood ? 'md:col-span-2' : ''}`}>
+              <h5 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-4 opacity-60">RISIKO</h5>
+              <div className="text-sm font-sans leading-relaxed opacity-90 prose-sm prose-rose max-w-none markdown-body">
+                <Markdown remarkPlugins={[remarkGfm]}>{item.why_to_avoid}</Markdown>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Toggle */}
+      {hasAnalysis && (
+        <div className="md:col-span-12 mt-2">
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            aria-expanded={isOpen}
+            aria-controls={toggleId}
+            className="w-full py-3 px-4 flex justify-between items-center bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200 rounded-lg text-sm font-bold text-slate-700 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            Lihat Analisis Lengkap
+            <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          <div 
+            id={toggleId} 
+            role="region"
+            className={`grid grid-cols-1 gap-4 overflow-hidden transition-all duration-300 ${isOpen ? 'mt-4 max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}
+          >
+            {hasLocal && (
+               <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-lg">
+                 <h6 className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-700 mb-2 flex items-center gap-2"><Globe className="w-3 h-3" /> ANALISIS LOKAL</h6>
+                 <p className="text-sm font-sans opacity-90 leading-relaxed">{item.local_market_analysis}</p>
+               </div>
+            )}
+            {hasGlobal && (
+               <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-lg">
+                 <h6 className="text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-700 mb-2 flex items-center gap-2"><Globe className="w-3 h-3" /> ANALISIS GLOBAL</h6>
+                 <p className="text-sm font-sans opacity-90 leading-relaxed">{item.global_market_analysis}</p>
+               </div>
+            )}
+            {hasTech && (
+               <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                 <h6 className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-700 mb-2 flex items-center gap-2"><BarChart2 className="w-3 h-3" /> ANALISIS TEKNIKAL</h6>
+                 <p className="text-sm font-sans opacity-90 leading-relaxed">{item.technical_analysis}</p>
+               </div>
+            )}
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function ComparisonBreakdownList({ items }: { items: ComparisonBreakdownItem[] }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {items.map((item, idx) => (
+        <ComparisonCard key={idx} item={item} />
+      ))}
+    </div>
+  );
+}
+
+export function RichResponse({ data, mode, onHintClick, has_multiple_options, comparison_breakdown }: RichResponseProps) {
   const [activeAlerts, setActiveAlerts] = useState<Record<string, boolean>>({});
 
   const handleSetAlert = (alertKey: string) => {
@@ -551,6 +694,425 @@ export function RichResponse({ data, mode, onHintClick }: { data: any; mode: Mod
   }
 
   if (mode === "market") {
+    const isMultiple = has_multiple_options ?? !!data?.has_multiple_options;
+    const items = comparison_breakdown ?? data?.comparison_breakdown;
+
+    if (isMultiple) {
+      if (Array.isArray(items) && items.length > 0) {
+        return (
+          <div className="bento-grid">
+            <div className="md:col-span-12 bento-card bg-[var(--color-sys-ink)] text-[var(--color-sys-bg)] border-none rounded-xl mb-4 p-6 md:p-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-[var(--color-sys-bg)]/20 pb-4 mb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <ListChecks className="w-6 h-6 opacity-80 shrink-0" />
+                  <h3 className="text-xl md:text-2xl font-bold tracking-tight font-serif italic uppercase break-words">
+                    Comparison Breakdown
+                  </h3>
+                </div>
+              </div>
+              <p className="opacity-80 text-sm font-mono leading-relaxed">
+                Berikut adalah detail perbandingan untuk opsi-opsi yang tersedia:
+              </p>
+            </div>
+            <div className="md:col-span-12">
+              <ComparisonBreakdownList items={items} />
+            </div>
+          </div>
+        );
+      } else {
+        return (
+          <div className="bento-card border border-slate-200 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center p-8">
+            <p className="text-sm font-mono flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" /> Tidak ada opsi pembanding tersedia.
+            </p>
+          </div>
+        );
+      }
+    }
+
+    if (data.responseType === "MARKET_ANALYSIS_V3") {
+      return (
+        <div className="bento-grid">
+          {/* Ticker Tape & Advanced Live Chart */}
+          {data.tradingview_symbol && (
+            <div className="md:col-span-12 flex flex-col gap-4 mb-2">
+              <div className="bento-card p-0 rounded-xl overflow-hidden h-[40px] bg-[#131722] border-none shadow-[2px_2px_0_var(--color-sys-ink)]">
+                <TickerTape
+                  colorTheme="dark"
+                  displayMode="adaptive"
+                  symbols={[
+                    {
+                      proName: data.tradingview_symbol,
+                      title: data.asset_name || data.tradingview_symbol,
+                    },
+                  ]}
+                />
+              </div>
+              <div className="bento-card p-0 rounded-xl overflow-hidden h-[450px] bg-[#131722] border-none shadow-[4px_4px_0_var(--color-sys-ink)]">
+                <AdvancedRealTimeChart
+                  symbol={data.tradingview_symbol}
+                  theme="dark"
+                  autosize
+                  height="100%"
+                  width="100%"
+                  hide_side_toolbar={false}
+                  allow_symbol_change={false}
+                  save_image={false}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* HEADER: Final Score & Asset */}
+          <div className="md:col-span-12 bento-card bg-[#0A0A0A] text-white border border-emerald-900 rounded-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 opacity-10 rounded-full translate-x-1/3 -translate-y-1/3" />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Activity className="w-6 h-6 text-emerald-400 shrink-0" />
+                  <h3 className="text-2xl md:text-3xl font-bold tracking-tight font-serif italic uppercase text-emerald-50">
+                    {data.asset_name}
+                  </h3>
+                  {data.current_price && (
+                    <span className="px-3 py-1 border border-emerald-800 bg-emerald-950 font-mono text-sm text-emerald-300 rounded">
+                      {data.current_price}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <span className={`px-4 py-1.5 text-[10px] md:text-xs font-mono font-bold uppercase border rounded ${
+                    data.final_score?.label?.includes("BULLISH") || data.final_score?.label?.includes("POSITIVE")
+                      ? "bg-emerald-900/50 border-emerald-500 text-emerald-400"
+                      : data.final_score?.label?.includes("BEARISH") 
+                        ? "bg-rose-900/50 border-rose-500 text-rose-400"
+                        : "bg-slate-800/50 border-slate-500 text-amber-400"
+                  }`}>
+                    {data.final_score?.label}
+                  </span>
+                  <span className={`px-4 py-1.5 text-[10px] md:text-xs font-mono font-bold uppercase border rounded ${
+                    data.final_score?.action?.includes("BUY") || data.final_score?.action?.includes("ACCUMULATE")
+                      ? "bg-emerald-900/50 border-emerald-500 text-emerald-400"
+                      : data.final_score?.action?.includes("SELL") || data.final_score?.action?.includes("EXIT") || data.final_score?.action?.includes("AVOID")
+                        ? "bg-rose-900/50 border-rose-500 text-rose-400"
+                        : "bg-slate-800/50 border-slate-500 text-amber-400"
+                  }`}>
+                    Action: {data.final_score?.action}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 relative z-10 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-[#333] md:pl-6">
+                {data.confidence_level && (
+                  <div className="flex flex-col items-center mr-4">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Confidence</span>
+                    <span className={`text-sm md:text-md font-bold font-mono px-2 py-1 rounded ${
+                      data.confidence_level.toLowerCase().includes('tinggi') || data.confidence_level.toLowerCase().includes('high')
+                        ? 'bg-emerald-900/50 text-emerald-400'
+                        : data.confidence_level.toLowerCase().includes('rendah') || data.confidence_level.toLowerCase().includes('low')
+                          ? 'bg-rose-900/50 text-rose-400'
+                          : 'bg-amber-900/50 text-amber-400'
+                    }`}>
+                      {data.confidence_level}
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Final Score</span>
+                  <div className="text-4xl font-bold font-mono text-white">
+                    {data.final_score?.score}<span className="text-lg text-slate-500">/100</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Classification & Phase */}
+          <div className="md:col-span-6 bento-card bg-indigo-50/50 border border-indigo-200 rounded-xl p-5">
+            <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-700 mb-4 flex items-center gap-2 border-b border-indigo-100 pb-2">
+              <ShieldAlert className="w-4 h-4" /> Klasifikasi Saham
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-indigo-50">
+                <span className="text-[10px] font-mono opacity-70 uppercase tracking-widest text-indigo-900">Class</span>
+                <span className="text-[10px] md:text-xs font-mono font-bold text-indigo-900 bg-indigo-100 px-2 py-1 rounded">{data.classification?.class}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-indigo-50">
+                <span className="text-[10px] font-mono opacity-70 uppercase tracking-widest text-indigo-900">Score</span>
+                <span className="text-[10px] md:text-xs font-mono font-bold text-indigo-800">{data.classification?.score}</span>
+              </div>
+              <div className="pt-2">
+                <span className="text-[10px] font-mono opacity-70 uppercase tracking-widest text-indigo-900 block mb-2">Faktor Dominan</span>
+                <ul className="space-y-1 block">
+                  {data.classification?.factors?.map((f: string, i: number) => (
+                    <li key={i} className="text-xs font-sans text-indigo-900 flex gap-2">
+                      <span className="text-indigo-400 shrink-0 mt-0.5">•</span> <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-6 bento-card bg-amber-50/50 border border-amber-200 rounded-xl p-5">
+            <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-700 mb-4 flex items-center gap-2 border-b border-amber-100 pb-2">
+              <TrendingUp className="w-4 h-4" /> Fase Pasar
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-50">
+                <span className="text-[10px] font-mono opacity-70 uppercase tracking-widest text-amber-900">Phase</span>
+                <span className="text-[10px] md:text-xs font-mono font-bold text-amber-900 bg-amber-100 px-2 py-1 rounded">{data.market_phase?.phase}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-amber-50">
+                <span className="text-[10px] font-mono opacity-70 uppercase tracking-widest text-amber-900">Confidence</span>
+                <span className="text-[10px] md:text-xs font-mono font-bold text-amber-800">{data.market_phase?.confidence}</span>
+              </div>
+              <div className="pt-2">
+                <span className="text-[10px] font-mono opacity-70 uppercase tracking-widest text-amber-900 block mb-2">Sinyal Kunci</span>
+                <ul className="space-y-1">
+                  {data.market_phase?.key_signals?.map((s: string, i: number) => (
+                    <li key={i} className="text-xs font-sans text-amber-900 flex gap-2">
+                      <span className="text-amber-400 shrink-0 mt-0.5">•</span> <span>{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Broker Intelligence */}
+          <div className="md:col-span-12 bento-card bg-[#111] text-[#eee] rounded-xl p-6 border border-[#333]">
+            <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-60 mb-6 flex items-center gap-2 border-b border-[#333] pb-4">
+              <BarChart2 className="w-4 h-4" /> Broker Intelligence Summary
+            </h4>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                  <h5 className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2"><ArrowDownToLine className="w-3 h-3" /> Top Buyers (Today)</h5>
+                  <ul className="space-y-2">
+                    {data.broker_intelligence?.top_buyers?.map((b: string, i: number) => (
+                      <li key={i} className="text-[10px] md:text-xs font-mono bg-[#1A1A1A] px-3 py-2 rounded-md border border-[#2A2A2A] text-slate-300">
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-mono text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2"><ArrowUpFromLine className="w-3 h-3" /> Top Sellers (Today)</h5>
+                  <ul className="space-y-2">
+                    {data.broker_intelligence?.top_sellers?.map((s: string, i: number) => (
+                      <li key={i} className="text-[10px] md:text-xs font-mono bg-[#1A1A1A] px-3 py-2 rounded-md border border-[#2A2A2A] text-slate-300">
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-4 border border-[#222] bg-[#0A0A0A] rounded-xl overflow-hidden shadow-inner">
+                <div className="p-5 space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-[#222]">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Tier-A Net Flow (5d)</span>
+                    <span className={`text-[10px] md:text-xs font-mono font-bold bg-[#1A1A1A] border border-[#333] px-2 py-1 rounded ${data.broker_intelligence?.tier_a_net_flow?.includes('+') ? 'text-emerald-400' : 'text-rose-400'}`}>{data.broker_intelligence?.tier_a_net_flow}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-[#222]">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Tier-B Net Flow (5d)</span>
+                    <span className={`text-[10px] md:text-xs font-mono font-bold bg-[#1A1A1A] border border-[#333] px-2 py-1 rounded ${data.broker_intelligence?.tier_b_net_flow?.includes('+') ? 'text-emerald-400' : 'text-rose-400'}`}>{data.broker_intelligence?.tier_b_net_flow}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-[#222]">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Foreign Flow (5d)</span>
+                    <span className={`text-[10px] md:text-xs font-mono font-bold bg-[#1A1A1A] border border-[#333] px-2 py-1 rounded ${data.broker_intelligence?.foreign_flow?.includes('+') ? 'text-emerald-400' : 'text-rose-400'}`}>{data.broker_intelligence?.foreign_flow}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-3 border-b border-[#222]">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Tier-C Dominance</span>
+                    <span className="text-[10px] md:text-xs font-bold font-mono text-amber-400 bg-amber-950/30 border border-amber-900/50 px-2 py-1 rounded">{data.broker_intelligence?.tier_c_dominance}</span>
+                  </div>
+                  <div className="pt-2">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block mb-2">Pola Terdeteksi</span>
+                    <span className="text-xs font-sans p-3 bg-[#1A1A1A] text-emerald-300 border border-[#333] rounded-lg block shadow-inner leading-relaxed">
+                      {data.broker_intelligence?.patterns_detected}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub Scores Grid */}
+          <div className="md:col-span-12 mt-2">
+            <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest opacity-50 mb-3 ml-1">Sub-Scores Analysis</h4>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              {[
+                { title: 'Tech Health', val: data.sub_scores?.technical_health, color: 'emerald' },
+                { title: 'Liq Health', val: data.sub_scores?.liquidity_health, color: 'blue' },
+                { title: 'Manip Risk', val: data.sub_scores?.manipulation_risk, color: 'rose', invert: true },
+                { title: 'Fund Health', val: data.sub_scores?.fundamental_health, color: 'indigo' },
+                { title: 'Sent Quality', val: data.sub_scores?.sentiment_quality, color: 'cyan' },
+                { title: 'Broker Flow', val: data.sub_scores?.broker_flow_health, color: 'amber' }
+              ].map((score, idx) => {
+                const isBad = score.invert ? Number(score.val) > 50 : Number(score.val) < 50;
+                return (
+                  <div key={idx} className="bento-card border border-[var(--color-sys-line)] bg-white p-4 flex flex-col items-center justify-center text-center rounded-xl shadow-sm hover:shadow transition-shadow">
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500 mb-2 h-6 flex items-center justify-center leading-tight">
+                      {score.title}
+                    </span>
+                    <span className={`text-2xl font-mono font-bold ${isBad ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {score.val}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {data.hard_caps_applied && data.hard_caps_applied.length > 0 && (
+              <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-rose-700 block mb-1">Hard Caps Applied</span>
+                  <div className="text-xs font-sans text-rose-900 leading-relaxed font-medium">
+                    {data.hard_caps_applied.join(" • ")}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Core Analysis & Counter Indicators */}
+          <div className="md:col-span-7 bento-card bg-white border-2 border-[var(--color-sys-ink)] shadow-[4px_4px_0_var(--color-sys-ink)] p-6 md:p-8 rounded-xl flex flex-col justify-between">
+            <div>
+              <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-dashed border-slate-300 pb-3 text-slate-800">
+                <MessageSquare className="w-4 h-4" /> Analisa Inti
+              </h4>
+              <div className="prose-sm bg-slate-50/50 rounded-lg text-[13px] md:text-sm font-sans leading-relaxed text-slate-700 space-y-4">
+                <Markdown remarkPlugins={[remarkGfm]}>{data.core_analysis}</Markdown>
+              </div>
+            </div>
+            
+            <div className="mt-8 pt-6 border-t border-dashed border-rose-200">
+              <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-4 flex items-center gap-2 text-rose-600">
+                <AlertCircle className="w-4 h-4" /> Mengapa Analisa Bisa Salah
+              </h4>
+              <ul className="space-y-2">
+                {data.risk_factors?.map((risk: string, i: number) => (
+                  <li key={i} className="text-[11px] md:text-xs font-sans text-rose-800 bg-rose-50 border border-rose-100 p-2.5 rounded-md flex gap-2.5 leading-relaxed">
+                    <span className="text-rose-400 shrink-0 mt-0.5">•</span> <span>{risk}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Risk Management & Catalysts */}
+          <div className="md:col-span-5 flex flex-col gap-4">
+            <div className="bento-card border border-slate-200 bg-slate-50 p-6 rounded-xl flex-1 shadow-sm">
+              <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-5 flex items-center gap-2 pb-3 border-b border-slate-200">
+                <ShieldAlert className="w-4 h-4 text-slate-600" /> Manajemen Risiko
+              </h4>
+              <div className="space-y-3 font-mono">
+                <div className="flex justify-between items-center bg-white p-3 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest">Entry Target</span>
+                  <span className="text-[10px] font-bold text-slate-800">{data.risk_management?.entry}</span>
+                </div>
+                <div className="flex justify-between items-center bg-rose-50 p-3 border border-rose-100 rounded-lg">
+                  <span className="text-[10px] text-rose-500 uppercase tracking-widest">Stop Loss</span>
+                  <span className="text-[10px] font-bold text-rose-700">{data.risk_management?.stop_loss}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white p-3 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest">Position Size</span>
+                  <span className="text-[10px] font-bold text-slate-800">{data.risk_management?.position_size}</span>
+                </div>
+                <div className="flex justify-between items-center bg-emerald-50 p-3 border border-emerald-100 rounded-lg">
+                  <span className="text-[10px] text-emerald-600 uppercase tracking-widest">Take Profit</span>
+                  <span className="text-[10px] font-bold text-emerald-700">{data.risk_management?.take_profit}</span>
+                </div>
+                
+                {data.risk_management?.do_not && data.risk_management.do_not.length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-dashed border-rose-200">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest block mb-3 text-rose-600 flex items-center gap-1.5"><ListChecks className="w-3 h-3"/> Pantangan:</span>
+                    <ul className="space-y-2">
+                      {data.risk_management.do_not.map((dn: string, i: number) => (
+                        <li key={i} className="text-[11px] font-sans text-rose-800 bg-rose-50 px-3 py-2 rounded-md border border-rose-100 flex gap-2">
+                          <span className="text-rose-500 shrink-0 mt-px">×</span> <span>{dn}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bento-card bg-[#1a1b26] border-none text-indigo-50 p-6 rounded-xl shadow-[4px_4px_0_var(--color-sys-ink)]">
+              <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-5 flex items-center gap-2 text-indigo-400 border-b border-[#2f3146] pb-3">
+                <BellRing className="w-4 h-4" /> Katalis Untuk Dipantau
+              </h4>
+              <ul className="space-y-3">
+                {data.catalysts_to_watch?.map((cat: string, i: number) => (
+                  <li key={i} className="text-[11px] md:text-xs font-sans leading-relaxed border-l-2 border-indigo-500 pl-4 py-1 text-indigo-100 bg-indigo-950/20 rounded-r border-y border-r border-[#2f3146]/50">
+                    {cat}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {data.market_forecast && (
+              <div className="bento-card border border-slate-200 bg-slate-50 p-6 rounded-xl flex-1 shadow-sm">
+                <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-5 flex items-center gap-2 pb-3 border-b border-slate-200 text-slate-800">
+                  <LineChart className="w-4 h-4 text-slate-600" /> Market Forecast
+                </h4>
+                <div className="space-y-4">
+                  {data.market_forecast.short_term && (
+                    <div>
+                      <h5 className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">Short Term (1-2 Weeks)</h5>
+                      <p className="text-xs font-sans text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
+                        {data.market_forecast.short_term}
+                      </p>
+                    </div>
+                  )}
+                  {data.market_forecast.medium_term && (
+                    <div>
+                      <h5 className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">Medium Term (1-3 Months)</h5>
+                      <p className="text-xs font-sans text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
+                        {data.market_forecast.medium_term}
+                      </p>
+                    </div>
+                  )}
+                  {data.market_forecast.long_term && (
+                    <div>
+                      <h5 className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">Long Term (6-12 Months)</h5>
+                      <p className="text-xs font-sans text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200">
+                        {data.market_forecast.long_term}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {data.options_and_references && data.options_and_references.length > 0 && (
+              <div className="bento-card bg-white border border-slate-200 p-6 rounded-xl flex flex-col justify-center">
+                <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4" /> Referensi
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {data.options_and_references.map((ref: any, i: number) => (
+                     <a
+                      key={i}
+                      href={ref.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-[10px] md:text-xs font-mono text-slate-600 hover:text-slate-900 transition-colors"
+                    >
+                      {ref.title}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (data.user_choice_pending) {
       return (
         <div className="bento-card border-none bg-indigo-50 text-indigo-950 rounded-xl flex items-center justify-center p-8">
@@ -561,135 +1123,6 @@ export function RichResponse({ data, mode, onHintClick }: { data: any; mode: Mod
       );
     }
 
-    if (data.user_chooses_compare && data.comparison_breakdown?.length > 0) {
-      return (
-        <div className="bento-grid">
-          <div className="md:col-span-12 bento-card bg-[var(--color-sys-ink)] text-[var(--color-sys-bg)] border-none rounded-xl">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b border-[var(--color-sys-bg)] pb-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <ListChecks className="w-6 h-6 opacity-80 shrink-0" />
-                <h3 className="text-xl md:text-2xl font-bold tracking-tight font-serif italic uppercase break-words">
-                  Comparison Breakdown
-                </h3>
-              </div>
-            </div>
-            <p className="opacity-80 text-sm font-mono leading-relaxed">
-              Here is the detailed breakdown comparing each option with its
-              pros, cons, risks, and potential rewards:
-            </p>
-          </div>
-
-          {data.comparison_breakdown.map((item: any, i: number) => (
-            <div
-              key={i}
-              className="md:col-span-12 bento-grid mb-6 border-2 border-[var(--color-sys-ink)] bg-white p-6 rounded-xl shadow-[4px_4px_0_var(--color-sys-ink)]"
-            >
-              <div className="md:col-span-12 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-dashed border-[var(--color-sys-line)] pb-4 mb-4 gap-4">
-                <h4 className="text-2xl font-bold font-serif italic uppercase">
-                  {item.asset_name}
-                </h4>
-                <div className="flex gap-2 items-center flex-wrap">
-                  {item.current_price_or_status && (
-                    <span className="px-3 py-1.5 bg-slate-100 border border-slate-300 text-slate-800 text-xs font-mono rounded-full font-bold">
-                      {item.current_price_or_status}
-                    </span>
-                  )}
-                  <span
-                    className={`px-4 py-1.5 border text-xs font-mono font-bold uppercase tracking-widest rounded-full flex items-center justify-center ${
-                      item.sentiment === "BULLISH"
-                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                        : item.sentiment === "BEARISH"
-                          ? "bg-rose-100 text-rose-800 border-rose-300"
-                          : "bg-slate-100 text-slate-800 border-slate-300"
-                    }`}
-                  >
-                    {item.sentiment || "NEUTRAL"}
-                  </span>
-                </div>
-              </div>
-              <div className="md:col-span-6 bento-card border border-emerald-200 bg-emerald-50/30 text-emerald-950 rounded-xl p-5 hover:shadow-md transition-shadow">
-                <h5 className="text-xs font-mono font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Pros &
-                  Potential Rewards
-                </h5>
-                <div className="text-sm font-sans leading-relaxed opacity-90 markdown-body prose-sm prose-emerald max-w-none">
-                  <Markdown remarkPlugins={[remarkGfm]}>{item.why_it_is_good}</Markdown>
-                </div>
-              </div>
-              <div className="md:col-span-6 bento-card border border-rose-200 bg-rose-50/30 text-rose-950 rounded-xl p-5 hover:shadow-md transition-shadow">
-                <h5 className="text-xs font-mono font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600" /> Cons & Risks
-                </h5>
-                <div className="text-sm font-sans leading-relaxed opacity-90 markdown-body prose-sm prose-rose max-w-none">
-                  <Markdown remarkPlugins={[remarkGfm]}>{item.why_to_avoid}</Markdown>
-                </div>
-              </div>
-
-              {/* Local & Global Macro Analysis for Item */}
-              {(item.local_market_analysis || item.global_market_analysis) && (
-                <div className="md:col-span-12 grid md:grid-cols-2 gap-4 mt-2">
-                  {item.local_market_analysis && (
-                    <div className="bento-card border border-amber-200 bg-amber-50/50 text-amber-950 rounded-xl p-5">
-                      <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-3 flex items-center gap-2 text-amber-700">
-                        <Globe className="w-4 h-4" /> Local Market Analysis
-                      </h4>
-                      <p className="text-sm font-sans leading-relaxed opacity-90 break-words">
-                        {item.local_market_analysis}
-                      </p>
-                    </div>
-                  )}
-                  {item.global_market_analysis && (
-                    <div className="bento-card border border-indigo-200 bg-indigo-50/50 text-indigo-950 rounded-xl p-5">
-                      <h4 className="text-[10px] font-mono font-bold uppercase tracking-widest mb-3 flex items-center gap-2 text-indigo-700">
-                        <Globe className="w-4 h-4" /> Global Market Analysis
-                      </h4>
-                      <p className="text-sm font-sans leading-relaxed opacity-90 break-words">
-                        {item.global_market_analysis}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Forecast for Item */}
-              {item.market_forecast && (
-                <div className="md:col-span-12 bento-card border-none bg-indigo-50 text-indigo-950 rounded-xl p-5 mt-2">
-                  <h4 className="text-xs font-mono font-bold uppercase tracking-widest mb-4 flex items-center gap-2 opacity-60">
-                    <LineChart className="w-4 h-4" /> Forecast
-                  </h4>
-                  <ul className="text-sm font-sans leading-relaxed space-y-3">
-                    {item.market_forecast.short_term && (
-                      <li className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
-                        <span className="font-mono font-bold uppercase text-[10px] opacity-70 w-24 pt-1 shrink-0">
-                          Short Term
-                        </span>
-                        <span>{item.market_forecast.short_term}</span>
-                      </li>
-                    )}
-                    {item.market_forecast.medium_term && (
-                      <li className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
-                        <span className="font-mono font-bold uppercase text-[10px] opacity-70 w-24 pt-1 shrink-0">
-                          Medium Term
-                        </span>
-                        <span>{item.market_forecast.medium_term}</span>
-                      </li>
-                    )}
-                    {item.market_forecast.long_term && (
-                      <li className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
-                        <span className="font-mono font-bold uppercase text-[10px] opacity-70 w-24 pt-1 shrink-0">
-                          Long Term
-                        </span>
-                        <span>{item.market_forecast.long_term}</span>
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-    }
 
     return (
       <div className="bento-grid">

@@ -58,7 +58,11 @@ export const useSessions = (
             setIsSessionLoaded(true);
           }
         } catch (err) {
-          handleFirestoreError(err, OperationType.GET, 'users');
+          try {
+            handleFirestoreError(err, OperationType.GET, 'users');
+          } catch (e) {
+            // Error was thrown by handleFirestoreError, catch it to prevent Script error.
+          }
           setIsSessionLoaded(true);
         }
       } else {
@@ -166,7 +170,11 @@ export const useSessions = (
         fetchSavedSessions();
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, 'users');
+      try {
+        handleFirestoreError(err, OperationType.WRITE, 'users');
+      } catch (e) {
+        console.error("Firestore error handled: ", e);
+      }
     }
   };
 
@@ -191,8 +199,12 @@ export const useSessions = (
       }, { merge: true });
       
       fetchSavedSessions();
-    } catch(err) {
-      handleFirestoreError(err, OperationType.WRITE, 'users');
+    } catch (err) {
+      try {
+        handleFirestoreError(err, OperationType.WRITE, 'users');
+      } catch (e) {
+        console.error("Firestore pin error: ", e);
+      }
     }
   };
 

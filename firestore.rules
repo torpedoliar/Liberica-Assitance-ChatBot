@@ -10,8 +10,23 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
+    }
+
+    function isSuperAdmin() {
+      return isVerifiedEmail() && (request.auth.token.email.lower() == 'yohanesoctav@gmail.com' || request.auth.token.email.lower() == 'bagastyo6@gmail.com');
+    }
+
+    function isAdmin() {
+      return isVerifiedEmail() && (
+        isSuperAdmin() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()))
+      );
     }
 
     function incoming() {
@@ -22,13 +37,6 @@ service cloud.firestore {
       return resource.data;
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'yohanesoctav@gmail.com' ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
-      );
-    }
-
     function isValidAdmin(data) {
       return data.keys().hasAll(['email', 'createdAt', 'addedBy'])
         && data.keys().size() == 3
@@ -37,64 +45,65 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'lastLogin'])
+        && data.keys().size() <= 3
+        && data.email is string && data.email.size() <= 200
+        && data.lastLogin == request.time;
+    }
+
     function isValidSession(data) {
-      return data.keys().hasAll(['currentMode', 'messages', 'appState', 'updatedAt', 'title', 'isPinned'])
-        && data.keys().size() == 6
+      return data.keys().hasAll(['currentMode', 'messages', 'appState', 'updatedAt'])
         && data.currentMode is string && data.currentMode.size() <= 100
         && data.messages is string && data.messages.size() <= 1048576
         && data.appState is string && data.appState.size() <= 1048576
         && data.updatedAt == request.time
-        && data.title is string && data.title.size() <= 100
-        && data.isPinned is bool;
+        && (data.get('title', '') is string && data.get('title', '').size() <= 100)
+        && (data.get('isPinned', false) is bool)
+        && (data.get('mode', '') is string && data.get('mode', '').size() <= 100);
     }
 
     function isSaveSession() {
-      return incoming().diff(existing()).affectedKeys().hasOnly(['currentMode', 'messages', 'appState', 'updatedAt']);
-    }
-    
-    function isPinSession() {
-      return incoming().diff(existing()).affectedKeys().hasOnly(['isPinned', 'updatedAt']);
-    }
-
-    function isRenameSession() {
-      return incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt']);
+      return incoming().diff(existing()).affectedKeys().hasOnly(['currentMode', 'messages', 'appState', 'updatedAt', 'title', 'mode', 'isPinned']);
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      
+      allow update: if isSignedIn() && request.auth.uid == userId &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['lastLogin', 'email']) &&
+        isValidUser(incoming());
+      
+      allow delete: if false;
+
+      match /sessions/{sessionId} {
+        allow get, list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(sessionId) && isValidSession(incoming());
+        
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidSession(incoming()) && isSaveSession();
+           
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     match /{path=**}/sessions/{sessionId} {
       allow list, get: if isAdmin();
     }
 
-    match /users/{userId}/sessions/{sessionId} {
-      allow get: if isSignedIn() && request.auth.uid == userId
-                 && isValidId(userId) && isValidId(sessionId);
-      
-      allow list: if isSignedIn() && request.auth.uid == userId
-                  && isValidId(userId);
-
-      allow create: if isSignedIn() && request.auth.uid == userId
-                    && isValidId(userId) && isValidId(sessionId)
-                    && isValidSession(incoming());
-
-      allow update: if isSignedIn() && request.auth.uid == userId
-                    && isValidId(userId) && isValidId(sessionId)
-                    && isValidSession(incoming())
-                    && (isSaveSession() || isPinSession() || isRenameSession());
-
-      allow delete: if isSignedIn() && request.auth.uid == userId
-                    && isValidId(userId) && isValidId(sessionId);
-    }
-
     match /admins/{adminEmail} {
-      allow get, list: if isAdmin();
-      allow create: if isAdmin() && isValidAdmin(incoming()) && incoming().email == adminEmail;
+      allow get: if isVerifiedEmail() && (isAdmin() || request.auth.token.email.lower() == adminEmail);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidAdmin(incoming()) && incoming().email == adminEmail && isValidId(adminEmail);
       allow update: if false;
       allow delete: if isAdmin() && adminEmail != 'yohanesoctav@gmail.com';
+    }
+
+    match /test/connection {
+      allow get: if true;
     }
   }
 }

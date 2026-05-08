@@ -1,71 +1,98 @@
 {
   "entities": {
-    "Session": {
-      "title": "Session",
-      "description": "User session containing chat history and app state",
-      "type": "object",
-      "properties": {
-        "currentMode": {
-          "type": "string",
-          "description": "The current mode of the app"
-        },
-        "messages": {
-          "type": "string",
-          "description": "JSON stringified messages"
-        },
-        "appState": {
-          "type": "string",
-          "description": "JSON stringified app state"
-        },
-        "updatedAt": {
-          "type": "number",
-          "description": "Timestamp of last update"
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the session"
-        },
-        "isPinned": {
-          "type": "boolean",
-          "description": "Whether the session is pinned"
-        }
-      },
-      "required": ["currentMode", "messages", "appState", "updatedAt", "title", "isPinned"]
-    },
-    "Admin": {
-      "title": "Admin",
-      "description": "Admin user allowed to invite and view dashboard",
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Represents an administrator with special dashboard access.",
       "type": "object",
       "properties": {
         "email": {
           "type": "string",
-          "description": "The admin's email address"
+          "description": "The admin's email address."
         },
         "addedBy": {
           "type": "string",
-          "description": "The email of the admin who invited this admin"
+          "description": "Email of the admin who added this user."
         },
         "createdAt": {
-          "type": "number",
-          "description": "Timestamp of creation"
+          "type": "string",
+          "format": "date-time"
         }
       },
       "required": ["email", "addedBy", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user profile record.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "User's email"
+        },
+        "lastLogin": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "lastLogin"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "A chat session representing conversation state.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Auto-generated session title."
+        },
+        "currentMode": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Legacy/Apparent mistyped mode param occasionally queried."
+        },
+        "messages": {
+          "type": "string",
+          "description": "Stringified JSON of messages."
+        },
+        "appState": {
+          "type": "string",
+          "description": "Stringified JSON of app state."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isPinned": {
+          "type": "boolean"
+        }
+      },
+      "required": ["currentMode", "messages", "appState", "updatedAt"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "A test connection document to verify Firestore readiness.",
+      "type": "object",
+      "properties": {}
     }
   },
   "firestore": {
-    "/users/{userId}/sessions/{sessionId}": {
-      "schema": {
-        "$ref": "#/entities/Session"
-      },
-      "description": "Stores user chat sessions and states"
+    "admins/{emailId}": {
+      "schema": { "$ref": "AdminUser" },
+      "description": "Administrators collection."
     },
-    "/admins/{adminEmail}": {
-      "schema": {
-        "$ref": "#/entities/Admin"
-      },
-      "description": "Stores admin users by email"
+    "users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profiles."
+    },
+    "users/{userId}/sessions/{sessionId}": {
+      "schema": { "$ref": "Session" },
+      "description": "User chat sessions."
+    },
+    "test/connection": {
+      "schema": { "$ref": "TestConnection" },
+      "description": "Firestore connection check document"
     }
   }
 }
-

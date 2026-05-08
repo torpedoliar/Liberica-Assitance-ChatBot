@@ -57,13 +57,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ sessionUser }) =
       const snapshot = await getDocs(q);
       const adminsData = snapshot.docs.map(doc => doc.data() as AdminUser);
       setAdmins(adminsData);
+      return true;
     } catch (err: any) {
-      console.error(err);
       if (err.message?.includes('missing or insufficient permissions') || err.code === 'permission-denied') {
         setError('Akses Ditolak. Anda bukan Admin.');
       } else {
         setError('Gagal memuat data admin.');
       }
+      return false;
     } finally {
       setLoading(false);
     }
@@ -98,13 +99,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ sessionUser }) =
         }));
 
         setActualModeData(modeCounts);
-      } catch (e) {
-        console.error("Error fetching actual stats", e);
+      } catch (e: any) {
+        if (!e.message?.includes('missing or insufficient permissions')) {
+          console.error("Error fetching actual stats", e);
+        }
       }
     };
 
-    fetchAdmins();
-    fetchActualStats();
+    const initializeDashboard = async () => {
+      const isAuthorized = await fetchAdmins();
+      if (isAuthorized) {
+        fetchActualStats();
+      }
+    };
+
+    initializeDashboard();
   }, []);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
@@ -121,7 +130,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ sessionUser }) =
       setNewAdminEmail('');
       fetchAdmins();
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.WRITE, 'admins');
+      try {
+        handleFirestoreError(err, OperationType.WRITE, 'admins');
+      } catch (e) {
+        // Handled
+      }
       alert('Gagal menambah admin. Pastikan Anda memiliki akses dan email valid.');
     }
   };
@@ -137,7 +150,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ sessionUser }) =
         await deleteDoc(doc(db, 'admins', emailLower));
         fetchAdmins();
       } catch (err) {
-        handleFirestoreError(err, OperationType.DELETE, 'admins');
+        try {
+          handleFirestoreError(err, OperationType.DELETE, 'admins');
+        } catch (e) {
+          // Handled
+        }
         alert('Gagal menghapus admin.');
       }
     }

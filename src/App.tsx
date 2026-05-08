@@ -210,7 +210,11 @@ export default function App() {
         }, { merge: true });
         fetchSavedSessions();
       } catch (err) {
-        handleFirestoreError(err, OperationType.WRITE, 'users');
+        try {
+          handleFirestoreError(err, OperationType.WRITE, 'users');
+        } catch(e) {
+          console.error("Firestore edit handle error: ", e);
+        }
       }
     } else if (!sessionUser) {
       alert('Silakan Sign In terlebih dahulu.');
