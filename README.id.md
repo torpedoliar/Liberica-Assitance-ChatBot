@@ -11,6 +11,7 @@ Liberica Assistance adalah asisten AI untuk troubleshooting teknis, brainstormin
 
 ## Daftar isi
 
+- [Tangkapan layar](#tangkapan-layar)
 - [Mode](#mode)
 - [Fitur](#fitur)
 - [Teknologi](#teknologi)
@@ -20,6 +21,16 @@ Liberica Assistance adalah asisten AI untuk troubleshooting teknis, brainstormin
 - [Struktur proyek](#struktur-proyek)
 - [Catatan keamanan](#catatan-keamanan)
 - [Lisensi](#lisensi)
+
+## Tangkapan layar
+
+![Mode Solusi (troubleshooting)](docs/screenshots/troubleshoot.png)
+
+*Mode Solusi (troubleshooting)*
+
+| | |
+|:---:|:---:|
+| ![Mode Diskusi (brainstorming)](docs/screenshots/brainstorm.png)<br/>Mode Diskusi (brainstorming) | ![Halaman login Google](docs/screenshots/sign-in.png)<br/>Halaman login Google |
 
 ## Mode
 

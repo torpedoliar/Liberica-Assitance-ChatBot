@@ -11,6 +11,7 @@ Liberica Assistance is an AI assistant for technical troubleshooting, structured
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Modes](#modes)
 - [Features](#features)
 - [Tech stack](#tech-stack)
@@ -20,6 +21,16 @@ Liberica Assistance is an AI assistant for technical troubleshooting, structured
 - [Project layout](#project-layout)
 - [Security notes](#security-notes)
 - [License](#license)
+
+## Screenshots
+
+![Solusi (troubleshooting) mode](docs/screenshots/troubleshoot.png)
+
+*Solusi (troubleshooting) mode*
+
+| | |
+|:---:|:---:|
+| ![Diskusi (brainstorming) mode](docs/screenshots/brainstorm.png)<br/>Diskusi (brainstorming) mode | ![Google sign-in gate](docs/screenshots/sign-in.png)<br/>Google sign-in gate |
 
 ## Modes
 
